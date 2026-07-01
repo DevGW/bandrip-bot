@@ -114,15 +114,15 @@ Install the following before running BandRip:
 ```bash
 node -v
 npm -v
-ffmpeg -version
 yt-dlp --version
 ```
 
 On macOS with Homebrew:
 
 ```bash
-brew install ffmpeg yt-dlp
-```
+brew install yt-dlp
+``` 
+> FFmpeg is bundled through the ffmpeg-static npm package. Set FFMPEG_PATH only if you want to override the bundled binary with a system-installed FFmpeg.
 
 ## Installation
 

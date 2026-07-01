@@ -1,7 +1,12 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createRequire } from "node:module";
 import type { RipJob } from "./jobService.js";
+
+
+const require = createRequire(import.meta.url);
+const ffmpegStaticPath = require("ffmpeg-static") as string | null;
 
 /**
  * Result returned after a rip job is processed.
@@ -14,10 +19,13 @@ export interface ProcessedMediaResult {
 /**
  * Gets the configured FFmpeg executable path.
  *
+ * FFMPEG_PATH wins when set. Otherwise BandRip uses the bundled ffmpeg-static
+ * binary. The final fallback assumes ffmpeg exists on the system PATH.
+ *
  * @returns FFmpeg executable path.
  */
 function getFfmpegPath(): string {
-    return process.env.FFMPEG_PATH ?? "ffmpeg";
+    return process.env.FFMPEG_PATH ?? ffmpegStaticPath ?? "ffmpeg";
 }
 
 /**
