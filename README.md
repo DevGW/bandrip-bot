@@ -9,7 +9,7 @@ Users run slash commands in a Discord server, BandRip processes the request in t
 - Discord slash-command interface
 - Per-user registration
 - Server-scoped user history
-- MP3 extraction from uploaded video files
+- MP3 extraction from uploaded video files within Discord upload limits
 - MP3 extraction from supported media URLs through `yt-dlp`
 - Background job processing
 - SQLite-backed job history
@@ -39,12 +39,6 @@ Upload a video file:
 /rip file:<uploaded-video>
 ```
 
-Use a supported media URL:
-
-```text
-/rip url:<media-url>
-```
-
 Supported upload extensions:
 
 ```text
@@ -53,6 +47,26 @@ Supported upload extensions:
 .webm
 .mkv
 ```
+
+Discord enforces upload limits before BandRip receives an attachment. For non-Nitro users, the default Discord upload limit is 10 MB. Nitro users, boosted servers, and some experimental Discord accounts may have higher limits.
+
+If Discord rejects the upload, BandRip cannot process the file because the attachment never reaches the bot.
+
+For larger files, use a supported direct-download URL instead:
+
+```text
+/rip url:<direct-download-url>
+```
+
+or compress/trim the video before uploading.
+
+Use a supported media URL:
+
+```text
+/rip url:<media-url>
+```
+
+URL ingestion should be used only with user-owned, licensed, or otherwise permissioned media.
 
 For uploaded files, the returned MP3 keeps the original base filename.
 
@@ -387,6 +401,10 @@ Check history:
 
 ## Notes
 
+Discord upload limits apply before BandRip receives uploaded files. For non-Nitro users, the default upload limit is 10 MB. Larger files should be provided through `/rip url:<direct-download-url>`, compressed, trimmed, or uploaded from an account/server with a higher Discord upload limit.
+
+Discord upload limits can also affect DM delivery of completed MP3 files. If the generated MP3 exceeds Discord's allowed attachment size, processing may succeed but delivery may fail.
+
 URL processing depends on `yt-dlp` and the source provider. Some URLs may fail if the provider blocks download access or if `yt-dlp` needs to be updated.
 
 Update `yt-dlp` with Homebrew:
@@ -397,7 +415,7 @@ brew upgrade yt-dlp
 yt-dlp --version
 ```
 
-Uploaded video files are the most reliable processing path.
+Uploaded video files under the user's Discord upload limit are the most reliable processing path.
 
 ## Scripts
 
