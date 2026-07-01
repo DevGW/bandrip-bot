@@ -129,7 +129,7 @@ brew install yt-dlp
 Clone the repository:
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/DevGW/bandrip-bot.git
 cd bandrip-bot
 ```
 
