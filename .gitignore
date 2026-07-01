@@ -6,3 +6,4 @@ tmp/input/*
 tmp/output/*
 .env
 .DS_Store
+.idaa/
