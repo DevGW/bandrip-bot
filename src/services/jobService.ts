@@ -298,3 +298,56 @@ export function listJobsForUser(
 
     return rows.map(mapJobRow);
 }
+
+/**
+ * Lists completed jobs whose output artifacts have expired.
+ *
+ * @param nowIso - Current ISO timestamp.
+ * @param limit - Maximum number of jobs to return.
+ * @returns Completed jobs ready for output cleanup.
+ */
+export function listExpiredCompletedJobs(nowIso: string, limit = 25): RipJob[] {
+    const rows = db
+        .prepare(
+            `
+      SELECT
+        id,
+        tenant_id,
+        user_id,
+        source_type,
+        source_url,
+        input_filename,
+        output_filename,
+        status,
+        error_message,
+        created_at,
+        completed_at,
+        expires_at
+      FROM jobs
+      WHERE status = 'complete'
+        AND expires_at IS NOT NULL
+        AND expires_at <= ?
+      ORDER BY expires_at ASC
+      LIMIT ?
+      `,
+        )
+        .all(nowIso, limit) as unknown[];
+
+    return rows.map(mapJobRow);
+}
+
+/**
+ * Marks a completed job as expired after its output artifact is cleaned up.
+ *
+ * @param jobId - Rip job ID.
+ */
+export function markJobExpired(jobId: string): void {
+    db.prepare(
+        `
+    UPDATE jobs
+    SET status = 'expired'
+    WHERE id = ?
+      AND status = 'complete'
+    `,
+    ).run(jobId);
+}

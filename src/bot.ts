@@ -4,6 +4,7 @@ import { getCommand } from "./commands/index.js";
 import { initializeDatabase } from "./db/database.js";
 import { requireEnv } from "./services/configService.js";
 import { startRipWorker } from "./workers/ripWorker.js";
+import { startCleanupService } from "./services/cleanupService.js";
 
 /**
  * Reads the configured output time-to-live from the environment.
@@ -29,6 +30,11 @@ function getOutputTtlMinutes(): number {
  */
 async function main(): Promise<void> {
     initializeDatabase();
+
+    startCleanupService({
+        pollIntervalMs: 60_000,
+        batchSize: 25,
+    });
 
     const token = requireEnv("DISCORD_TOKEN");
 

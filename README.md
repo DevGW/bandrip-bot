@@ -17,6 +17,7 @@ Users run slash commands in a Discord server, BandRip processes the request in t
 - Temporary input file handling
 - Original filename preservation for uploaded files
 - Media title-based filenames for URL jobs when available
+- Bundled FFmpeg binary through `ffmpeg-static`
 
 ## Supported Commands
 
@@ -65,6 +66,8 @@ For URL jobs, BandRip attempts to use the media title as the MP3 filename.
 https://youtu.be/example → Video Title.mp3
 ```
 
+URL ingestion should be used only with user-owned, licensed, or otherwise permissioned media.
+
 ### `/history`
 
 Shows your recent BandRip jobs in the current server.
@@ -88,7 +91,7 @@ Background worker claims queued job
         ↓
 Download or resolve media input
         ↓
-Convert audio to MP3 with FFmpeg
+Convert audio to MP3
         ↓
 Mark job complete or failed
         ↓
@@ -102,7 +105,7 @@ Send MP3 to user by Discord DM
 - discord.js
 - SQLite
 - better-sqlite3
-- FFmpeg
+- ffmpeg-static
 - yt-dlp
 - dotenv
 - nanoid
@@ -121,8 +124,9 @@ On macOS with Homebrew:
 
 ```bash
 brew install yt-dlp
-``` 
-> FFmpeg is bundled through the ffmpeg-static npm package. Set FFMPEG_PATH only if you want to override the bundled binary with a system-installed FFmpeg.
+```
+
+FFmpeg is provided by the `ffmpeg-static` npm package. You only need to set `FFMPEG_PATH` if you want to override the bundled binary with a system-installed FFmpeg.
 
 ## Installation
 
@@ -145,7 +149,7 @@ Create a local environment file:
 cp .env.example .env
 ```
 
-Fill in the required values in `.env`.
+Fill in the required Discord values in `.env`.
 
 ## Environment Variables
 
@@ -162,23 +166,26 @@ TMP_INPUT_DIR=./tmp/input
 TMP_OUTPUT_DIR=./tmp/output
 OUTPUT_TTL_MINUTES=60
 
-FFMPEG_PATH=/opt/homebrew/bin/ffmpeg
+# Optional. BandRip uses ffmpeg-static when FFMPEG_PATH is not set.
+FFMPEG_PATH=
+
+# Optional if yt-dlp is already available on PATH.
 YT_DLP_PATH=/opt/homebrew/bin/yt-dlp
 ```
 
-### Required Values
+### Values
 
-| Variable | Description |
-|---|---|
-| `DISCORD_TOKEN` | Bot token from the Discord Developer Portal |
-| `DISCORD_CLIENT_ID` | Discord application/client ID |
-| `DISCORD_GUILD_ID` | Discord server ID used for guild command registration |
-| `DATABASE_PATH` | SQLite database path |
-| `TMP_INPUT_DIR` | Temporary input directory |
-| `TMP_OUTPUT_DIR` | Temporary output directory |
-| `OUTPUT_TTL_MINUTES` | Output expiration time in minutes |
-| `FFMPEG_PATH` | Path to the FFmpeg executable |
-| `YT_DLP_PATH` | Path to the yt-dlp executable |
+| Variable | Required | Description |
+|---|---:|---|
+| `DISCORD_TOKEN` | Yes | Bot token from the Discord Developer Portal |
+| `DISCORD_CLIENT_ID` | Yes | Discord application/client ID |
+| `DISCORD_GUILD_ID` | Yes | Discord server ID used for guild command registration |
+| `DATABASE_PATH` | No | SQLite database path. Defaults to `./data/bandrip.sqlite` |
+| `TMP_INPUT_DIR` | No | Temporary input directory. Defaults to `./tmp/input` |
+| `TMP_OUTPUT_DIR` | No | Temporary output directory. Defaults to `./tmp/output` |
+| `OUTPUT_TTL_MINUTES` | No | Number of minutes used when calculating the job output expiration timestamp |
+| `FFMPEG_PATH` | No | Optional override path for FFmpeg |
+| `YT_DLP_PATH` | No | Optional override path for yt-dlp |
 
 Do not commit `.env`.
 
@@ -278,14 +285,16 @@ bandrip-bot/
     output/
 
   .env.example
+  .gitignore
   package.json
+  package-lock.json
   tsconfig.json
   README.md
 ```
 
 ## Job States
 
-BandRip jobs use the following states:
+BandRip jobs use these states:
 
 ```text
 queued
@@ -295,12 +304,14 @@ failed
 expired
 ```
 
-Current flow:
+Current processing flow:
 
 ```text
 queued → running → complete
 queued → running → failed
 ```
+
+Completed jobs are marked `expired` after their output file reaches `expires_at` and the cleanup service removes the local MP3 artifact.
 
 ## File Handling
 
@@ -317,6 +328,8 @@ tmp/output/
 ```
 
 Input files are deleted after processing. Output files are retained locally and sent to the requesting user by Discord DM.
+
+`OUTPUT_TTL_MINUTES` controls how long completed MP3 files remain in `tmp/output/` before the cleanup service removes them and marks the job as `expired`.
 
 ## SQLite
 
